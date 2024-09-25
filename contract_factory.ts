@@ -2,9 +2,31 @@ import { IOMemory, ResultError, Context, isContextOpts } from "./env";
 import { Balance, Transaction, TransactionType, Address, PublicKey, Result, HashFunction, HttpRequest, HttpResponse, ContractFunctions, FunctionResult } from "./types";
 import { combineNumber, toHex } from "./utils";
 
-
 type ContractWithFunctions = BaseContract & ContractFunctions;
 type ContextWrappedFunction = (context?: Context) => FunctionResult;
+
+type ContractOptions = {
+  balance?: Balance,
+  transaction?: Transaction,
+  ioMocks?: IOMock
+}
+
+type InitOptions = {
+  init?: boolean
+}
+
+export enum InputType {
+  UCO,
+  Token
+}
+
+export type Input = {
+  from?: String
+  amount: number
+  type: InputType
+  tokenAddress?: String
+  tokenId?: number
+}
 
 const reservedFunctions = ["onInit", "onUpgrade"];
 
@@ -69,16 +91,8 @@ class BaseContract {
   static fromWASM(
     wasmInstance: WebAssembly.Instance,
     ioMem: IOMemory,
-    opts: ContractOptions | undefined
+    opts: ContractOptions & InitOptions | undefined
   ): ContractWithFunctions {
-    // if (!Object.keys(wasmInstance.exports).includes("spec")) {
-    //   throw "Contract must export a function `spec`";
-    // }
-
-    // (wasmInstance.exports.spec as Function)();
-    // const output = ioMem.getOutput();
-    // const spec = Spec.cast(output);
-
     const exportedFunctions = new Map<string, Function>();
     for (let key in wasmInstance.exports) {
       if (wasmInstance.exports[key] instanceof Function) {
@@ -121,7 +135,8 @@ class BaseContract {
     });
 
     const initFun = contextWrappedFunctions.get("onInit");
-    if (initFun) {
+    const isInit = opts != undefined && opts.init !== undefined ? opts.init : true;
+    if (isInit && initFun) {
       const defaultContext = {
         balance: { uco: 0, token: [] }
       }
@@ -168,7 +183,7 @@ class BaseContract {
   ): Promise<BaseContract> {
     const onUpgradeFn = this.functions.get("onUpgrade");
     const onInheritFn = this.functions.get("onInherit");
-    const newContract = await getContract(newBuffer);
+    const newContract = await getContract(newBuffer, { init: false });
     const defaultContext = { balance: { uco: 0, token: [] } }
 
     if (onUpgradeFn != undefined) {
@@ -194,28 +209,10 @@ class BaseContract {
 
 
 
-type ContractOptions = {
-  balance?: Balance,
-  transaction?: Transaction,
-  ioMocks?: IOMock
-}
-
-export enum InputType {
-  UCO,
-  Token
-}
-
-export type Input = {
-  from?: String
-  amount: number
-  type: InputType
-  tokenAddress?: String
-  tokenId?: number
-}
 
 export async function getContract(
   buffer: Uint8Array,
-  opts: ContractOptions | undefined = undefined,
+  opts: ContractOptions & InitOptions | undefined = undefined,
 ): Promise<ContractWithFunctions> {
   const ioMem = new IOMemory();
   const module = await WebAssembly.instantiate(buffer, {
@@ -335,7 +332,7 @@ interface IOMock {
   requestMany?(reqs: HttpRequest[]): HttpResponse[]
 }
 
-function mock(method: string, params: any, availableMocks: IOMock): any {
+function mock(method: keyof IOMock, params: any, availableMocks: IOMock): any {
   if (!availableMocks[method])
     throw new Error(`missing mock for method: ${method}`)
 
