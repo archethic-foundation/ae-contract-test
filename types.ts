@@ -18,7 +18,7 @@ export enum TransactionType {
 
 export class Transaction {
   type: TransactionType = TransactionType.Transfer;
-  data: TransactionData;
+  data!: TransactionData;
   validationStamp?: ValidationStamp;
 };
 
@@ -94,12 +94,12 @@ export type TransactionResult = {
 export type FunctionResult = Record<string, any> | TransactionResult | undefined;
 
 export class Nullable<T> {
-  value: T
+  value!: T
 }
 
 export class Result<T> {
-  ok: Nullable<T> | null
-  error: string | null
+  ok: Nullable<T> | null = null
+  error: string | null = null
 
   constructor(okValue: Nullable<T> | null, errValue: string | null) {
     if (okValue != null) this.ok = okValue
@@ -164,20 +164,20 @@ export class Address extends Hex { }
 export class PublicKey extends Hex { }
 
 export class HttpRequest {
-  uri: string;
+  uri!: string;
   method: Method = Method.GET;
   headers: HttpHeader[] = [];
   body: string = "";
 }
 
 class HttpHeader {
-  key: string;
-  value: string;
+  key!: string;
+  value!: string;
 }
 
 export class HttpResponse {
-  status: number;
-  body: string;
+  status!: number;
+  body!: string
 }
 
 export enum Method {
