@@ -1,1 +1,2 @@
-export { getContract } from "./contract_factory";
+export * from "./contract_factory";
+export * from "./types"

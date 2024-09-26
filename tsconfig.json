@@ -1,7 +1,20 @@
 {
-  "extends": ["@tsconfig/next/tsconfig.json"],
   "include": ["./**/*.ts"],
   "compilerOptions": {
     "target": "esnext",
-  }
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "removeComments": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "rootDir": "./",
+    "outDir": "./dist",
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDeclarationOnly": true,
+  },
+  "exclude": ["node_modules", "dist", "tests"]
 }
