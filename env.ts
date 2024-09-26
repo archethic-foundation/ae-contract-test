@@ -59,6 +59,7 @@ export interface Context extends ContextOpts {
 }
 
 export interface ContextOpts {
+  now: number;
   state?: object;
   transaction?: Transaction;
   balance: Balance

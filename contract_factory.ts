@@ -113,19 +113,21 @@ class BaseContract {
       }
 
       contract[name] = (...args: any[]): FunctionResult => {
-        let context: Context = { balance: opts?.balance ? opts.balance : { uco: 0, token: [] } };
+        let context: Context = { now: 0, balance: opts?.balance ? opts.balance : { uco: 0, token: [] } };
         if (args.length > 0) {
           if (isContextOpts(args[0])) {
-            context.state = args[0].state;
+            context.state = args[0].state ? args[0].state : contract.state
             context.transaction = args[0].transaction;
             context.balance = args[0].balance;
+            context.now = args[0].now ? args[0].now : 0;
             context.arguments = {}
           } else {
             context.arguments = args[0];
             if (args.length == 2) {
-              context.state = args[1].state;
+              context.state = args[1].state ? args[1].state : contract.state
               context.transaction = args[1].transaction;
               context.balance = args[1].balance;
+              context.now = args[1].now ? args[1].now : 0;
             }
           }
         }
@@ -138,6 +140,7 @@ class BaseContract {
     const isInit = opts != undefined && opts.init !== undefined ? opts.init : true;
     if (isInit && initFun) {
       const defaultContext = {
+        now: 0,
         balance: { uco: 0, token: [] }
       }
       const initializeState = initFun(opts?.transaction ? Object.assign(defaultContext, { transaction: opts.transaction }) : defaultContext);
@@ -184,7 +187,7 @@ class BaseContract {
     const onUpgradeFn = this.functions.get("onUpgrade");
     const onInheritFn = this.functions.get("onInherit");
     const newContract = await getContract(newBuffer, { init: false });
-    const defaultContext = { balance: { uco: 0, token: [] } }
+    const defaultContext = { now: 0, balance: { uco: 0, token: [] } }
 
     if (onUpgradeFn != undefined) {
       const upgradeResult = onUpgradeFn(Object.assign(defaultContext, {
