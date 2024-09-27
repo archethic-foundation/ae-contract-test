@@ -9,12 +9,14 @@ export class Balance {
   token: TokenBalance[] = []
 }
 
-export enum TransactionType {
-  Contract = 249,
-  Data = 250,
-  Transfer = 253,
-  Token = 251,
+export namespace TransactionType {
+  export const Contract = "contract";
+  export const Transfer = "transfer";
+  export const Data = "data";
+  export const Token = "token";
 }
+  
+export type TransactionType = string;
 
 export class Transaction {
   type: TransactionType = TransactionType.Transfer;
