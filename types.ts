@@ -21,8 +21,11 @@ export namespace TransactionType {
 export type TransactionType = string;
 
 export class Transaction {
-  type: TransactionType = TransactionType.Transfer;
+  address!: Address;
+  type!: TransactionType;
   data!: TransactionData;
+  previousPublicKey!: PublicKey;
+  genesis!: Address;
   validationStamp?: ValidationStamp;
 };
 
