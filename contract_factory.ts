@@ -303,7 +303,7 @@ const envHostFunctions = {
     const input = JSON.parse(new TextDecoder().decode(serializedInput));
 
     if (!(input.method && input.params)) throw new Error(`error deserializing jsonrpc request`)
-    if (!(opts && opts.ioMocks)) throw new Error(`no mocks passed to getContract`)
+    if (!(opts && opts.ioMocks)) throw new Error(`getContract requires \`${input.method}\` mock to be defined`)
 
     const output = mock(input.method, input.params, opts.ioMocks)
     const serializedOutput = new TextEncoder().encode(JSON.stringify(output));
