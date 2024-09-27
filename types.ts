@@ -1,3 +1,5 @@
+import { ContextOpts } from "./env";
+
 export class TokenBalance {
   tokenAddress!: Address;
   tokenId: number = 0;
@@ -85,9 +87,11 @@ export interface TokenUTXO extends UnspentOutput {
   tokenIndex: number;
 }
 
-export type ContractFunction = (...args: any[]) => FunctionResult;
-export type ContractFunctions = Record<string, ContractFunction>;
+type FunctionWithParams = (input: any, opts?: ContextOpts) => FunctionResult
+type FunctionWithOptions = (opts?: ContextOpts) => FunctionResult
 
+export type ContractFunction = FunctionWithOptions & FunctionWithParams
+export type ContractFunctions = Record<string, ContractFunction>;
 
 export type TransactionResult = {
   transaction?: Transaction;

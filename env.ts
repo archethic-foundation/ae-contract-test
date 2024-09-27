@@ -59,10 +59,10 @@ export interface Context extends ContextOpts {
 }
 
 export interface ContextOpts {
-  now: number;
+  now?: number;
   state?: object;
   transaction?: Transaction;
-  balance: Balance
+  balance?: Balance
 }
 
 export function isContextOpts(opts: any): opts is ContextOpts {
