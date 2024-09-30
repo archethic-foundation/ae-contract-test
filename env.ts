@@ -1,4 +1,4 @@
-import { Balance, Transaction, TransactionData } from "./types";
+import { Address, Balance, Transaction, TransactionData, TransactionType } from "./types";
 
 export class ResultError extends Error {
   constructor(
@@ -63,6 +63,14 @@ export interface ContextOpts {
   state?: object;
   transaction?: Transaction;
   balance?: Balance
+  contract?: ContextContractConstants
+}
+
+export interface ContextContractConstants {
+  address?: Address;
+  type?: TransactionType;
+  genesis?: Address;
+  data?: TransactionData;
 }
 
 export function isContextOpts(opts: any): opts is ContextOpts {

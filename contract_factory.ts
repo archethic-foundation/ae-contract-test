@@ -113,22 +113,29 @@ class BaseContract {
       }
 
       contract[name] = (...args: any[]): FunctionResult => {
-        let context: Context = { now: 0, balance: opts?.balance ? opts.balance : { uco: 0, token: [] } };
+        let context: Context = { now: 0, balance: opts?.balance ? opts.balance : { uco: 0, token: [] }, contract: {
+          address: new Address("00000000000000000000000000000000000000000000000000000000000000000000"),
+          type: TransactionType.Contract,
+          genesis: new Address("00000000000000000000000000000000000000000000000000000000000000000000"),
+          data: {}
+        } };
         context.state  = contract.state;
         if (args.length > 0) {
           if (isContextOpts(args[0])) {
             if (args[0].state) context.state = args[0].state
-            context.transaction = args[0].transaction;
-            context.balance = args[0].balance;
-            context.now = args[0].now ? args[0].now : 0;
+            if (args[0].transaction) context.transaction = args[0].transaction
+            if (args[0].balance) context.balance = args[0].balance
+            if (args[0].now) context.now = args[0].now
+            if (args[0].contract) context.contract = args[0].contract
             context.arguments = {};
           } else {
             context.arguments = args[0];
             if (args.length == 2) {
               if (args[1].state) context.state = args[1].state
-              context.transaction = args[1].transaction;
-              context.balance = args[1].balance;
-              context.now = args[1].now ? args[1].now : 0;
+              if (args[1].transaction) context.transaction = args[1].transaction
+              if (args[1].balance) context.balance = args[1].balance
+              if (args[1].now) context.now = args[1].now
+              if (args[1].contract) context.contract = args[1].contract
             }
           }
         }
