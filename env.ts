@@ -1,4 +1,4 @@
-import { Address, Balance, Transaction, TransactionData, TransactionType } from "./types";
+import {Context, ContextOpts, Transaction, TransactionData} from "./types"
 
 export class ResultError extends Error {
   constructor(
@@ -52,25 +52,6 @@ export class IOMemory {
       this.buffer[i] = this.input[i]
     }
   }
-}
-
-export interface Context extends ContextOpts {
-  arguments?: object;
-}
-
-export interface ContextOpts {
-  now?: number;
-  state?: object;
-  transaction?: Transaction;
-  balance?: Balance
-  contract?: ContextContractConstants
-}
-
-export interface ContextContractConstants {
-  address?: Address;
-  type?: TransactionType;
-  genesis?: Address;
-  data?: TransactionData;
 }
 
 export function isContextOpts(opts: any): opts is ContextOpts {

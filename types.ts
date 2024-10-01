@@ -1,4 +1,21 @@
-import { ContextOpts } from "./env";
+export interface Context extends ContextOpts {
+  arguments?: object;
+}
+
+export interface ContextOpts {
+  now?: number;
+  state?: object;
+  transaction?: Transaction;
+  balance?: Balance
+  contract?: ContextContractConstants
+}
+
+export interface ContextContractConstants {
+  address?: Address;
+  type?: TransactionType;
+  genesis?: Address;
+  data?: TransactionData;
+}
 
 export class TokenBalance {
   tokenAddress!: Address;
@@ -205,4 +222,22 @@ export enum HashFunction {
   // BLAKE2B,
   // KECCAK256 ,
 
+}
+
+export interface IOMock {
+  getBalance?(address: Address): Balance
+  getGenesisAddress?(address: Address): Address
+  getFirstTransactionAddress?(address: Address): Address
+  getBurnAddress?(): Address
+  getLastAddress?(address: Address): Address
+  getPreviousAddress?(previousPublicKey: PublicKey): Address
+  getGenesisPublicKey?(publicKey: PublicKey): PublicKey
+  getTransaction?(address: Address): Result<Transaction>
+  getLastTransaction?(address: Address): Result<Transaction>
+  callFunction?<A, R>(address: Address, functionName: string, args: A): Result<R>
+  hmacWithStorageNonce?(data: Uint8Array, hashFunction: HashFunction): Uint8Array
+  signWithRecovery?(data: Uint8Array): Uint8Array
+  decryptWithStorageNonce?(cipher: Uint8Array): Uint8Array
+  request?(req: HttpRequest): HttpResponse
+  requestMany?(reqs: HttpRequest[]): HttpResponse[]
 }

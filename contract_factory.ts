@@ -1,6 +1,6 @@
-import { IOMemory, ResultError, Context, isContextOpts } from "./env";
-import { Balance, Transaction, TransactionType, Address, PublicKey, Result, HashFunction, HttpRequest, HttpResponse, ContractFunctions, FunctionResult } from "./types";
-import { combineNumber, toHex } from "./utils";
+import { IOMemory, ResultError, isContextOpts } from "./env";
+import { Context, Balance, Transaction, TransactionType, Address, PublicKey, Result, HashFunction, HttpRequest, HttpResponse, ContractFunctions, FunctionResult, IOMock } from "./types";
+import { combineNumber } from "./utils";
 
 type ContractWithFunctions = BaseContract & ContractFunctions;
 type ContextWrappedFunction = (context?: Context) => FunctionResult;
@@ -13,19 +13,6 @@ type ContractOptions = {
 
 type InitOptions = {
   init?: boolean
-}
-
-export enum InputType {
-  UCO,
-  Token
-}
-
-export type Input = {
-  from?: String
-  amount: number
-  type: InputType
-  tokenAddress?: String
-  tokenId?: number
 }
 
 const reservedFunctions = ["onInit", "onUpgrade"];
@@ -159,34 +146,6 @@ class BaseContract {
     return contract;
   }
 
-  toTransaction(): Transaction {
-    const defaultTransaction: Transaction = {
-      type: TransactionType.Contract,
-      data: {
-        code: toHex(this.wasmBytes),
-      },
-      validationStamp: {
-        ledgerOperations: {
-          unspentOutputs: [
-            {
-              type: "state",
-              state: this.state,
-              from: "",
-            },
-          ],
-        },
-      },
-    } as Transaction;
-
-    if (this.transaction) {
-      if (this.transaction.data.code === undefined) {
-        this.transaction.data.code = defaultTransaction.data.code;
-      }
-      return Object.assign(defaultTransaction, this.transaction);
-    }
-    return defaultTransaction;
-  }
-
   async upgrade(
     newBuffer: Uint8Array,
     transaction: Transaction | undefined = undefined,
@@ -216,9 +175,6 @@ class BaseContract {
     return newContract;
   }
 }
-
-
-
 
 export async function getContract(
   buffer: Uint8Array,
@@ -324,25 +280,7 @@ const envHostFunctions = {
   }
 }
 
-interface IOMock {
-  getBalance?(address: Address): Balance
-  getGenesisAddress?(address: Address): Address
-  getFirstTransactionAddress?(address: Address): Address
-  getBurnAddress?(): Address
-  getLastAddress?(address: Address): Address
-  getPreviousAddress?(previousPublicKey: PublicKey): Address
-  getGenesisPublicKey?(publicKey: PublicKey): PublicKey
-  getTransaction?(address: Address): Result<Transaction>
-  getLastTransaction?(address: Address): Result<Transaction>
-  callFunction?<A, R>(address: Address, functionName: string, args: A): Result<R>
-  hmacWithStorageNonce?(data: Uint8Array, hashFunction: HashFunction): Uint8Array
-  signWithRecovery?(data: Uint8Array): Uint8Array
-  decryptWithStorageNonce?(cipher: Uint8Array): Uint8Array
-  request?(req: HttpRequest): HttpResponse
-  requestMany?(reqs: HttpRequest[]): HttpResponse[]
-}
-
-function mock(method: keyof IOMock, params: any, availableMocks: IOMock): any {
+export function mock(method: keyof IOMock, params: any, availableMocks: IOMock): any {
   if (!availableMocks[method])
     throw new Error(`missing mock for method: ${method}`)
 
@@ -379,6 +317,5 @@ function mock(method: keyof IOMock, params: any, availableMocks: IOMock): any {
     case "request":
     case "requestMany":
       return Result.wrapOk(availableMocks[method](params))
-
   }
 }
