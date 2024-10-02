@@ -20,7 +20,12 @@
   },
   "devDependencies": {
     "@tsconfig/next": "^2.0.3",
+    "@types/node": "^22.7.4",
     "esbuild": "0.24.0",
     "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@archethicjs/sdk": "^1.21.2",
+    "axios": "^1.7.7"
   }
 }
