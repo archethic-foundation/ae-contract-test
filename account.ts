@@ -1,15 +1,14 @@
 import axios from "axios"
-import fs from "fs"
-import zlib from "zlib"
 
 import Archethic, { ArchethicWalletClient, Contract, Crypto, Utils } from "@archethicjs/sdk"
 import { TransactionSuccess } from "@archethicjs/sdk/dist/api/types";
 import { ExtendedTransactionBuilder } from "@archethicjs/sdk/dist/transaction";
 import TransactionBuilder from "@archethicjs/sdk/dist/transaction_builder";
+import { ConnectionType, getConnection } from "./connection";
+import { Config } from "./config";
+import { DeployTxDataOpt, getDeployContractTx, getUpgradeContractTx } from "./deployment";
 
-import { ConnectionType } from "./connection";
-
-class Account {
+export class Account {
   constructor(public address: string, public connectionType: ConnectionType, public archethic: Archethic, public seed?: string) {}
 
   async requestFaucet() {
@@ -79,54 +78,47 @@ class Account {
   }
 }
 
-export async function getAccount(archethic: Archethic, seed?: string): Promise<Account> {
-  if (archethic.endpoint.isRpcAvailable && archethic.rpcWallet !== undefined) {
-    const walletAccount = await archethic.rpcWallet.getCurrentAccount();
-    return new Account(walletAccount.genesisAddress, ConnectionType.Wallet, archethic)
-  }
-  if (seed == undefined) {
-    throw new Error("seed is required if the connection is not wallet based")
-  }
-  const genesisAddress = Crypto.deriveAddress(seed)
-  return new Account(Utils.uint8ArrayToHex(genesisAddress), ConnectionType.Direct, archethic, seed)
-}
+export class AccountContext {
+  #config: Config
+  archethicClient!: Archethic;
 
-export function getRandomAccount(archethic: Archethic): Account {
-  const seed = Crypto.randomSecretKey()
-  const chainAddress = Crypto.deriveAddress(seed)
-  return new Account(Utils.uint8ArrayToHex(chainAddress), ConnectionType.Direct, archethic, Utils.uint8ArrayToHex(seed))
-}
-
-export type deployOpts = {
-  content?: string
-}
-
-export async function getDeployContractTx(account: Account, opts: deployOpts = {}) {
-  if (account.connectionType == ConnectionType.Wallet) {
-    throw new Error("Only direct account is supported for now")
+  constructor(client: Archethic, config: Config){
+    this.archethicClient = client;
+    this.#config = config;
   }
 
-  const compressedCode = await compress(fs.readFileSync("./dist/contract.wasm"))
-  const manifestFile = fs.readFileSync('./dist/manifest.json', 'utf-8')
-  let tx = await Contract.newContractTransaction(account.archethic, JSON.stringify({
-    manifest: JSON.parse(manifestFile),
-    bytecode: compressedCode.toString('hex')
-  }), account.seed as string)
-
-  if (opts.content) {
-    tx.setContent(opts.content)
+  static async fromConfig(config: Config): Promise<AccountContext> {
+    const client = await getConnection(config.endpoint)
+    return new AccountContext(client, config);
   }
 
-  return tx
-}
+  async getAccount(): Promise<Account> {
+    if (this.archethicClient.endpoint.isRpcAvailable && this.archethicClient.rpcWallet !== undefined) {
+      const walletAccount = await this.archethicClient.rpcWallet.getCurrentAccount();
+      return new Account(walletAccount.genesisAddress, ConnectionType.Wallet, this.archethicClient)
+    }
+    if (this.#config.seed == undefined) {
+      throw new Error("seed is required if the connection is not wallet based")
+    }
+    const genesisAddress = Crypto.deriveAddress(this.#config.seed)
+    return new Account(Utils.uint8ArrayToHex(genesisAddress), ConnectionType.Direct, this.archethicClient, this.#config.seed)
+  }
+  
+  getRandomAccount(): Account {
+    const seed = Crypto.randomSecretKey()
+    const chainAddress = Crypto.deriveAddress(seed)
+    return new Account(Utils.uint8ArrayToHex(chainAddress), ConnectionType.Direct, this.archethicClient, Utils.uint8ArrayToHex(seed))
+  }
 
-async function compress(bytes: Buffer): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    zlib.deflateRaw(bytes, (err, res) => {
-      if (err) {
-        return reject(err)
-      }
-      resolve(res)
-    })
-  })
+  async deployContract(account: Account, additionalData?: DeployTxDataOpt): Promise<string> {
+    const contractTx = await getDeployContractTx(account, { additionalData: additionalData , upgradeAddress: this.#config.upgradeAddress })
+    const { transactionAddress } = await account.sendTransaction(contractTx)
+    return transactionAddress;
+  }
+
+  async updateContract(account: Account, contractAddress: string, additionalData?: DeployTxDataOpt): Promise<string> {
+    const contractTx = await getUpgradeContractTx(account, contractAddress, { additionalData: additionalData, upgradeAddress: this.#config.upgradeAddress })
+    const { transactionAddress } = await account.sendTransaction(contractTx)
+    return transactionAddress;
+  }
 }
