@@ -117,7 +117,7 @@ export class AccountContext {
   }
 
   async updateContract(account: Account, contractAddress: string, additionalData?: DeployTxDataOpt): Promise<string> {
-    const contractTx = await getUpgradeContractTx(account, contractAddress, { additionalData: additionalData, upgradeAddress: this.#config.upgradeAddress })
+    const contractTx = getUpgradeContractTx(account, contractAddress, { additionalData: additionalData, upgradeAddress: this.#config.upgradeAddress })
     const { transactionAddress } = await account.sendTransaction(contractTx)
     return transactionAddress;
   }

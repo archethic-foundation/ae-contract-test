@@ -1,9 +1,13 @@
 import fs from "fs"
 import zlib from "zlib"
-import { Contract } from "@archethicjs/sdk"
-
+import { Contract as ContractNS, Utils } from "@archethicjs/sdk"
 import { ConnectionType } from "./connection"
 import { Account } from "./account"
+import { TransactionData } from "@archethicjs/sdk/dist/types"
+import { ExtendedTransactionBuilder } from "@archethicjs/sdk/dist/transaction"
+
+const { hexToUint8Array } = Utils
+const { Contract, newContractTransaction, updateContractTransaction } = ContractNS
 
 type UCOTransfer = {
   to: string;
@@ -40,7 +44,7 @@ export async function getDeployContractTx(account: Account, opts: DeployOpts = {
     throw new Error("Only direct account is supported for now")
   }
 
-  const compressedCode = await compress(fs.readFileSync("./dist/contract.wasm"))
+  const bytecode = fs.readFileSync("./dist/contract.wasm")
   const manifestFile = fs.readFileSync('./dist/manifest.json', 'utf-8')
   const manifest = JSON.parse(manifestFile)
   if (opts.upgradeAddress) {
@@ -48,14 +52,34 @@ export async function getDeployContractTx(account: Account, opts: DeployOpts = {
       from: opts.upgradeAddress
     }
   }
-  let tx = await Contract.newContractTransaction(account.archethic, JSON.stringify({
-    manifest: manifest,
-    bytecode: compressedCode.toString('hex')
-  }), account.seed as string)
 
-  if (opts.additionalData?.content) {
-    tx.setContent(opts.additionalData?.content)
+  let txData: TransactionData | undefined = undefined;
+  if (opts.additionalData) {
+    txData = { content: "", ledger: { uco: {transfers: []}, token: { transfers: []}}, recipients: [], ownerships: []}
+    if (opts.additionalData.content) {
+      txData.content = opts.additionalData.content
+    }
+
+    if (opts.additionalData.ucoTransfers) {
+      txData.ledger.uco.transfers = opts.additionalData.ucoTransfers.map((t) => {
+        return { to: hexToUint8Array(t.to), amount: t.amount}
+     })
+    }
+
+    if (opts.additionalData.tokenTransfers) {
+      txData.ledger.token.transfers = opts.additionalData.tokenTransfers.map((t) => {
+        return { to: hexToUint8Array(t.to), amount: t.amount, tokenAddress: hexToUint8Array(t.tokenAddress), tokenId: t.tokenId}
+     })
+    }
+
+    if (opts.additionalData?.recipients) {
+      txData.recipients = opts.additionalData.recipients.map(r => {
+        return { address: hexToUint8Array(r.to), action: r.action, args: r.args }
+      })
+    }
   }
+ 
+  let tx = await newContractTransaction(account.archethic, new Contract(bytecode, manifest), account.seed as string, txData)
 
   if (opts.additionalData?.ucoTransfers) {
     opts.additionalData?.ucoTransfers.forEach(t => tx.addUCOTransfer(t.to, t.amount))
@@ -72,8 +96,8 @@ export async function getDeployContractTx(account: Account, opts: DeployOpts = {
   return tx
 }
 
-export async function getUpgradeContractTx(account: Account, contractAddress: string, opts: DeployOpts = {}) {
-  const compressedCode = await compress(fs.readFileSync("./dist/contract.wasm"))
+export function getUpgradeContractTx(account: Account, contractAddress: string, opts: DeployOpts = {}): ExtendedTransactionBuilder {
+  const bytecode = fs.readFileSync("./dist/contract.wasm")
   const manifestFile = fs.readFileSync('./dist/manifest.json', 'utf-8')
   const manifest = JSON.parse(manifestFile)
 
@@ -83,9 +107,7 @@ export async function getUpgradeContractTx(account: Account, contractAddress: st
     }
   }
 
-  const tx = account.archethic.transaction.new()
-    .setType("transfer")
-    .addRecipient(contractAddress, "upgrade", [ compressedCode.toString('hex'), manifest ])
+  const tx = updateContractTransaction(account.archethic, contractAddress, new Contract(bytecode, manifest))
   
   if (opts.additionalData?.content) {
     tx.setContent(opts.additionalData?.content)
