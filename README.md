@@ -61,6 +61,16 @@ describe("init", () => {
   });
 });
 
+describe("onUpgrade", () => {
+  it("should mutate the contract's state with new contract logic", async () => {
+    const wasmBuffer = readFileSync("./dist/contract.wasm");
+    const contract = await getContract(wasmBuffer);
+    expect(contract.state.counter).toBe(0);
+    const newContract = await contract.upgrade(wasmBuffer);
+    expect(newContract.state.counter).toBe(10);
+  });
+});
+
 describe("inc", () => {
   it("should increment without state", async () => {
     const wasmBuffer = readFileSync("./dist/contract.wasm");
